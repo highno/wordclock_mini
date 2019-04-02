@@ -1,3 +1,6 @@
+// licensed MIT License, copyright by Daniel Eichhorn
+// original library is accessable at https://github.com/squix78/MAX7219LedMatrix
+
 #include <Arduino.h>
 // bit patterns for the CP437 font
 

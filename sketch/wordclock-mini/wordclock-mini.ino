@@ -1,34 +1,38 @@
 // Tested environment: WeMos D1 R2 & mini, 80Mhz, 4M (1MB SPIFFS), 230400
+// version of esp8266 boardmanager package: 2.5.0
+// the libraries versions of a working setup are in the comments - others may work. ymmv...
 
 #define DEBUG 1                    // allow debug outputs to be put in code
+#define FASTLED_ALLOW_INTERRUPTS 0
+#define FASTLED_ESP8266_D1_PIN_ORDER
 
 #include <FS.h>                    // this needs to be first, or it all crashes and burns...
 #include <Homie.h>                 // version 2.0.0, manual install from homepage
 #include "debug.h"                 // macros for debug output
 
-// FIXME: documentation on needed libs
 #include <time.h>
 #include <TimeLib.h>
-#include <Timezone.h>
+#include <Timezone.h>              // version 1.2.2, by Jack Christensen
 #include <elapsedMillis.h>         // version 1.0.4, by Paul Stoffregen
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
-#include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
+#include <ArduinoJson.h>           // version 5.13.3, by Benoit Blanchon
 #include <SPI.h>
+#include <FastLED.h>               // version 3.2.6, by Daniel Garcia
+#include <AceButton.h>             // version 1.3.3, by Brian T. Park
 #include "LedMatrix.h"
 #include "animations.h"
-#define FASTLED_ALLOW_INTERRUPTS 0
-#define FASTLED_ESP8266_D1_PIN_ORDER
-#include "FastLED.h"
 
 FASTLED_USING_NAMESPACE
+using namespace ace_button;
 
 const char compiletime[] = __TIME__;
 const char compiledate[] = __DATE__;
 String SW_VERSION = "0.3.0";
 
+#define LANGUAGE "DE"           // comming up feature: support an english clockface
 
 #define NUMBER_OF_DEVICES 1     // only one matrix display "in a row"
 #define CS_PIN D2               // CS or enable pin for the MAX7219 chip 
@@ -44,6 +48,7 @@ String SW_VERSION = "0.3.0";
 // Feel free to adapt this to your needs but beware that the documentation always describes this layout
 #define LEFT_PIN D0             // this is where the left button is connected to
 #define RIGHT_PIN D8            // obviously the same but for the right button
+
 #define LED_PIN 3               // 3 = RX, was D3 - this is where the data in line to the WS2812B LED is connected to
 #define LED_TYPE    WS2812B
 #define COLOR_ORDER GRB         // better check this for your setup 
@@ -61,6 +66,10 @@ String SW_VERSION = "0.3.0";
 #define FADE_OUT     1
 #define FADE_IN      2
 #define FADE_BLACK   3
+
+ButtonConfig btnConfig;
+AceButton leftButton(&btnConfig);
+AceButton rightButton(&btnConfig);
 
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CS_PIN);
 
@@ -183,56 +192,6 @@ void writeConfig(String filename) {
   configFile.close();  
 }
 
-void onHomieEvent(const HomieEvent& event) {
-  switch(event.type) {
-    case HomieEventType::STANDALONE_MODE:
-      Serial << "Standalone mode started" << endl;
-      break;
-    case HomieEventType::CONFIGURATION_MODE:
-      Serial << "Configuration mode started" << endl;
-      break;
-    case HomieEventType::NORMAL_MODE:
-      Serial << "Normal mode started" << endl;
-      break;
-    case HomieEventType::OTA_STARTED:
-      Serial << "OTA started" << endl;
-      break;
-    case HomieEventType::OTA_PROGRESS:
-      Serial << "OTA progress, " << event.sizeDone << "/" << event.sizeTotal << endl;
-      break;
-    case HomieEventType::OTA_FAILED:
-      Serial << "OTA failed" << endl;
-      break;
-    case HomieEventType::OTA_SUCCESSFUL:
-      Serial << "OTA successful" << endl;
-      break;
-    case HomieEventType::ABOUT_TO_RESET:
-      Serial << "About to reset" << endl;
-      break;
-    case HomieEventType::WIFI_CONNECTED:
-      Serial << "Wi-Fi connected, IP: " << event.ip << ", gateway: " << event.gateway << ", mask: " << event.mask << endl;
-      wifiSetup = 1;
-      break;
-    case HomieEventType::WIFI_DISCONNECTED:
-      Serial << "Wi-Fi disconnected, reason: " << (int8_t)event.wifiReason << endl;
-      setSyncInterval(5);
-      wifiSetup = 0;
-      break;
-    case HomieEventType::MQTT_READY:
-      Serial << "MQTT connected" << endl;
-      break;
-    case HomieEventType::MQTT_DISCONNECTED:
-      Serial << "MQTT disconnected, reason: " << (int8_t)event.mqttReason << endl;
-      break;
-    case HomieEventType::MQTT_PACKET_ACKNOWLEDGED:
-//      Serial << "MQTT packet acknowledged, packetId: " << event.packetId << endl;
-      break;
-    case HomieEventType::READY_TO_SLEEP:
-      Serial << "Ready to sleep" << endl;
-      break;
-
-  }
-}
 
 #define SEGMENT_FUENF 1
 #define SEGMENT_ZEHN 2
@@ -602,6 +561,69 @@ bool setNotifierColorHandler(const HomieRange& range, const String& value) {
   return true;
 }
 
+#define FUNC_NONE         0
+#define FUNC_READMSG      1
+#define FUNC_STUB         2
+#define BTN_LEFT          0
+#define BTN_RIGHT         1
+#define CLICK_SINGLE      0
+#define CLICK_DOUBLE      1
+#define CLICK_LONG        2
+#define CLICK_NONE        255
+
+void handleNothing() {
+}
+
+void handleStub() {
+  DPRINTLN("Function stub");
+}
+
+void handlePendingMessage() {
+  if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
+    DPRINTLN("Show the pending message. "); 
+    getNextMessage();
+    next_state = STATE_MESSAGE;
+    fade_mode = FADE_OUT;
+    next_tick = 1;     
+  }  
+}
+
+typedef void (*FunctionList[])();
+FunctionList functions = { handleNothing, handlePendingMessage, handleStub };
+
+byte buttonFunction[2][3] = {{FUNC_NONE, FUNC_STUB, FUNC_NONE}, {FUNC_READMSG, FUNC_NONE, FUNC_STUB}};
+String buttonNames[2] = {"leftButton", "rightButton"};
+
+void handleButtonEvent(AceButton* button, uint8_t eventType, uint8_t /* buttonState */) {
+  String s = "";
+  String b = "leftButton";
+  byte cl = CLICK_NONE;
+  switch (eventType) {
+    case AceButton::kEventClicked:
+      DPRINT("Button Event kEventClicked on button id ");
+      DPRINTLN(button->getId());
+      cl = CLICK_SINGLE;
+      break;
+    case AceButton::kEventDoubleClicked:
+      DPRINT("Button Event kEventDoubleClicked on button id ");
+      DPRINTLN(button->getId());
+      cl = CLICK_DOUBLE;
+      break;
+    case AceButton::kEventLongPressed:
+      DPRINT("Button Event kEventLongPressed on button id ");
+      DPRINTLN(button->getId());
+      cl = CLICK_LONG;
+      break;
+  }
+  if (button->getId()!=0) {
+    b = "rightButton";
+  }
+  if (cl != CLICK_NONE) {
+    infoNode.setProperty(buttonNames[button->getId()]).send(String(cl));
+    functions[buttonFunction[button->getId()][cl]]();
+  }
+}
+
 
 void setup() {
 
@@ -622,6 +644,13 @@ void setup() {
   pinMode(3, FUNCTION_3);
   pinMode(LEFT_PIN, INPUT);
   pinMode(RIGHT_PIN, INPUT);
+  btnConfig.setEventHandler(handleButtonEvent);
+  btnConfig.setFeature(ButtonConfig::kFeatureClick);
+  btnConfig.setFeature(ButtonConfig::kFeatureDoubleClick);
+  btnConfig.setFeature(ButtonConfig::kFeatureSuppressClickBeforeDoubleClick);
+  btnConfig.setFeature(ButtonConfig::kFeatureLongPress);
+  leftButton.init(LEFT_PIN, LOW, BTN_LEFT);
+  rightButton.init(RIGHT_PIN, LOW, BTN_RIGHT);
   pinMode(LED_PIN, OUTPUT);
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, 1).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(255);
@@ -673,14 +702,14 @@ void setup() {
   Homie_setFirmware("Wordclock Mini", "0.3.0"); // The underscore is not a typo! See Magic bytes
   Homie.disableLedFeedback(); // before Homie.setup()
   infoNode.advertise("message").settable(messageHandler);
+  infoNode.advertise("leftButton");
+  infoNode.advertise("rightButton");
   configNode.advertise("brightness").settable(setBrightnessHandler); // brightness of display 1-15
   configNode.advertise("notifierBrightness").settable(setNotifierBrightnessHandler); // intensity of color led 1-128=fade from black to color, 129-255 fade from color to white
   configNode.advertise("notifierColor").settable(setNotifierColorHandler); // hue of color led 
-//  Homie.onEvent(onHomieEvent);
   Homie.setup();
 
   // ntp sync
-//  ntpStart(5);
   configTime(0*3600,0,"de.pool.ntp.org"); // UTC only, we'll make it local time later on
   
   ledMatrix.setTextProportional(F("Wordclock Mini"));
@@ -820,38 +849,12 @@ void loopFaderNotifier() {
 
 void loop() {
   Homie.loop();
+  leftButton.check();
+  rightButton.check();
 
   if (checkWifiConnection()) checkNTP();
   loopFaderMatrix();
   loopFaderNotifier();
-
-  if (digitalRead(LEFT_PIN)==HIGH) { 
-    // 1552646380 = Testzeit 15.03.2019 10:39:39
-    timeval tv = { 1552646380, 0 };
-    settimeofday(&tv, 0);
-//    DPRINT("aktuell t_time"); DPRINTLN(local);
-    led.hue += 254;
-    leds[0] = led;
-    FastLED.show();
-    delay(15);
-  }
-  if (digitalRead(RIGHT_PIN)==HIGH) {
-    debugOutTime("aktuell: ", local);
-/*    DPRINT("aktuell t_time: "); DPRINTLN(local);
-    led.hue += 1;
-    leds[0] = led;
-    FastLED.show();
-    DPRINT("LED hue: "); DPRINTLN(led.hue);
-    DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); */
-    if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
-      DPRINTLN("Show the pending message. "); 
-      getNextMessage();
-      next_state = STATE_MESSAGE;
-      fade_mode = FADE_OUT;
-      next_tick = 1;     
-    }
-    delay(15);
-  }
 
   if ((tick_timer > next_tick) && (fade_mode != FADE_OUT)) {
     tick_timer = 0;

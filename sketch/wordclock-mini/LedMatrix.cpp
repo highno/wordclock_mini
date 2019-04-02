@@ -1,4 +1,6 @@
-// FIXME: copyright notice of original author is missing
+// licensed MIT License, copyright by Daniel Eichhorn
+// original library is accessable at https://github.com/squix78/MAX7219LedMatrix
+
 // This library is easy to use but it had also room for improvement.
 // Since the clock uses only one 8x8 matrix, scrolling text was not easily readable. So I added a mode to use 
 // a proportional (variable-width) font. I also changed to font to actually use all 8 lines instead of 7.
