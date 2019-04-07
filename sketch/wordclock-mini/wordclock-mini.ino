@@ -24,13 +24,14 @@
 #include <AceButton.h>             // version 1.3.3, by Brian T. Park
 #include "LedMatrix.h"
 #include "animations.h"
+//#include <ESPAsyncWebServer.h>
 
 FASTLED_USING_NAMESPACE
 using namespace ace_button;
 
 const char compiletime[] = __TIME__;
 const char compiledate[] = __DATE__;
-String SW_VERSION = "0.3.0";
+String SW_VERSION = "0.3.1";
 
 #define LANGUAGE "DE"           // comming up feature: support an english clockface
 
@@ -118,6 +119,8 @@ bool animation_done = true;
 String newMessage = "";
 String allMessages = "";
 String lastMessage = "";
+
+//AsyncWebServer _http;
 
 #define MS_TIME_BOOT_MESSAGE 7600
 #define MS_TIME_REBOOT_RESET 10000
@@ -563,7 +566,8 @@ bool setNotifierColorHandler(const HomieRange& range, const String& value) {
 
 #define FUNC_NONE         0
 #define FUNC_READMSG      1
-#define FUNC_STUB         2
+#define FUNC_SHOWIP       2
+#define FUNC_STUB         3
 #define BTN_LEFT          0
 #define BTN_RIGHT         1
 #define CLICK_SINGLE      0
@@ -588,10 +592,21 @@ void handlePendingMessage() {
   }  
 }
 
-typedef void (*FunctionList[])();
-FunctionList functions = { handleNothing, handlePendingMessage, handleStub };
+void handleShowIp() {
+  if ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE)) {
+    DPRINTLN("Show the current IP address. "); 
+    newMessage = "http://" + WiFi.localIP().toString();
+    next_state = STATE_MESSAGE;
+    fade_mode = FADE_OUT;
+    next_tick = 1;     
+  }  
+}
 
-byte buttonFunction[2][3] = {{FUNC_NONE, FUNC_STUB, FUNC_NONE}, {FUNC_READMSG, FUNC_NONE, FUNC_STUB}};
+typedef void (*FunctionList[])();
+FunctionList functions = { handleNothing, handlePendingMessage, handleShowIp, handleStub };
+
+// predefined button setting using "click", "doubleclick" and "longpressed" for left and right button
+byte buttonFunction[2][3] = {{FUNC_NONE, FUNC_STUB, FUNC_SHOWIP}, {FUNC_READMSG, FUNC_NONE, FUNC_STUB}};
 String buttonNames[2] = {"leftButton", "rightButton"};
 
 void handleButtonEvent(AceButton* button, uint8_t eventType, uint8_t /* buttonState */) {
@@ -699,7 +714,7 @@ void setup() {
 
   // Homie Setup
   WiFi.disconnect();
-  Homie_setFirmware("Wordclock Mini", "0.3.0"); // The underscore is not a typo! See Magic bytes
+  Homie_setFirmware("Wordclock Mini", "0.3.1"); // The underscore is not a typo! See Magic bytes
   Homie.disableLedFeedback(); // before Homie.setup()
   infoNode.advertise("message").settable(messageHandler);
   infoNode.advertise("leftButton");
@@ -739,6 +754,9 @@ void setup() {
   writeConfig("/config.json");
   reboot_counter_reset = true;
 
+  if (Homie.isConfigured()) {
+    // setup webserver for message sending function 
+  }
 }
 
 bool hasTimeBeenSet() {
@@ -869,7 +887,7 @@ void loop() {
           next_frame = false; 
         } else {
           ledMatrix.scrollTextLeftProportional();
-          DPRINTLN("scrolling text ");  
+//          DPRINTLN("scrolling text ");  
           ledMatrix.drawTextProportional();
           ledMatrix.commit();
           if (ledMatrix.isScrollingDone()) {
