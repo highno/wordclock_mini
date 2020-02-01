@@ -1,5 +1,8 @@
 # wordclock_mini
 Wordclock Mini design and code for an ESP8266 and MAX7219 LED-Matrix based word clock and smart button/display
+See the 3D print at 
+- Thingiverse for printing and some pictures https://www.thingiverse.com/thing:3548159
+- Tinkercad for modding https://www.tinkercad.com/things/hlfuiNyPEjO
 # english
 This project will provide all files to make a nice small "mini-wordclock" (so far german layout only, but subject to change...). It sits on your desktop in a small, pc-like enclosure and has an 8x8 matrix display (behind the characters) and a fake keyboard which provides to buttons and a full color LED, all driven by a small Wemos D1 mini board.
 
