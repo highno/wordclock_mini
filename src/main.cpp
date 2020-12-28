@@ -1,4 +1,5 @@
 // Compiler Setup WeMos D1 R2 & mini, 80Mhz, 4M (1MB SPIFFS), 230400
+#include <Arduino.h>
 #include <FS.h>                   //this needs to be first, or it all crashes and burns...
 
 #define DEBUG 1
@@ -459,13 +460,16 @@ void animationLoop() {
 }
 
 void animationStart(byte animation, byte repeats) {
+  DPRINT(F("(init frame) "));
   animation_timer = 0;
   active_animation = animation;
+  DPRINT(F("(access frame memory) "));
   active_animation_frame = ani_start[active_animation];
   active_animation_speed = ani_speed[active_animation];
   active_animation_repeat = repeats;
   active_animation_cycle = 0;
   animation_done = false;
+  DPRINT(F("(showing frame) "));
   animationShowFrame();
 }
 
@@ -603,7 +607,7 @@ void setup() {
 
   // Open serial communications and wait for port to open
 #ifdef DEBUG
-  Serial.begin(57600);
+  Serial.begin(115200);
 #endif
 
   DPRINTLN(F("Wordclock Mini"));
@@ -615,20 +619,29 @@ void setup() {
   DPRINTLN(compiletime);
   DPRINTLN(F("starting..."));
   //GPIO 3 (RX) swap the pin to a GPIO.
+  DPRINT(F("setting up pins..."));
   pinMode(3, FUNCTION_3);
   pinMode(LEFT_PIN, INPUT);
   pinMode(RIGHT_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
+  DPRINTLN(F("done."));
+  DPRINT(F("setting up FastLED..."));
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, 1).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(255);
   FastLED.setDither(0);
   FastLED.setTemperature(UncorrectedTemperature);
   leds[0] = color_standard;
   FastLED.show();
+  DPRINTLN(F("done."));
   
+  DPRINT(F("setting up ledMatrix..."));
   ledMatrix.init();
+  DPRINTLN(F("done."));
   ledMatrix.setIntensity(0);
+  DPRINT(F("showing power on logo..."));
   animationStart(ANI_POWERON, 1);
+  DPRINTLN(F("done."));
+  DPRINT(F("showing boot animation..."));
   for (int i=1; i<16; i++) {
     delay(25);
     ledMatrix.setIntensity(i);
@@ -642,13 +655,17 @@ void setup() {
     delay(10);
     animationLoop();
   }
+  DPRINTLN(F("done."));
 
+  DPRINT(F("reading config..."));
   showImage(IMG_REBOOT_0);
   delay(800);
   readConfig("/config.json");
+  DPRINTLN(F("done."));
   reboot_counter++;
   DPRINT(F("Reboot no. "));
   DPRINTLN(reboot_counter);
+  DPRINT(F("saving reboot counter..."));
   for (int i=0; i<5; i++) {
     delay(200);
     showImage(IMG_REBOOT_0 + reboot_counter);
@@ -656,6 +673,8 @@ void setup() {
     showImage(IMG_REBOOT_0);
   }
   writeConfig("/config.json");
+  DPRINTLN(F("done."));
+  DPRINT(F("checking if setup mode is requested..."));
   ledMatrix.setIntensity(brightness); // range is 0-15
   if (reboot_counter > 2) {
     DPRINTLN (F("OK, hard reset after 3 reboots. Deleting existing config."));
@@ -663,8 +682,10 @@ void setup() {
     reboot_counter = 0;
     writeConfig("/config.json");
   }
+  DPRINTLN(F("done."));
 
   // Homie Setup
+  DPRINT(F("setting up Homie nodes..."));
   WiFi.disconnect();
   Homie_setFirmware("Wordclock Mini", "0.3.0"); // The underscore is not a typo! See Magic bytes
   Homie.disableLedFeedback(); // before Homie.setup()
@@ -672,13 +693,19 @@ void setup() {
   configNode.advertise("brightness").settable(setBrightnessHandler); // brightness of display 1-15
   configNode.advertise("notifierBrightness").settable(setNotifierBrightnessHandler); // intensity of color led 1-128=fade from black to color, 129-255 fade from color to white
   configNode.advertise("notifierColor").settable(setNotifierColorHandler); // hue of color led 
+  DPRINTLN(F("done."));
 //  Homie.onEvent(onHomieEvent);
+  DPRINT(F("setting up Homie..."));
   Homie.setup();
+  DPRINTLN(F("done."));
 
   // ntp sync
+  DPRINT(F("setting up NTP..."));
 //  ntpStart(5);
   configTime(0*3600,0,"de.pool.ntp.org"); // UTC only, we'll make it local time later on
   
+  DPRINTLN(F("done."));
+  DPRINT(F("setting up boot message..."));
   ledMatrix.setTextProportional(F("Wordclock Mini"));
   tick_timer = 0;
   state_timer = 0;
@@ -705,6 +732,8 @@ void setup() {
   reboot_counter = 0;
   writeConfig("/config.json");
   reboot_counter_reset = true;
+  DPRINTLN(F("done."));
+  DPRINTLN(F("Moving over to main loop."));
 
 }
 

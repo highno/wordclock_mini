@@ -63,7 +63,7 @@
 #define ANI_POWERON 3
 #define ANI_CLOCK 4
 
-const word ani_start[] PROGMEM = {
+const word ani_start[] = {
   // ANI_WIFI
   0,
   // ANI_HEART
@@ -78,7 +78,7 @@ const word ani_start[] PROGMEM = {
   68
 };
 
-const byte ani_speed[] PROGMEM = {
+const byte ani_speed[] = {
   // WIFI
   200,
   // HEART
@@ -93,7 +93,7 @@ const byte ani_speed[] PROGMEM = {
   0
 };
 
-const byte ani_frames[] PROGMEM = {
+const byte ani_frames[] = {
 // 0 - WIFI
  IMG_WIFI_FULL,
  IMG_WIFI_MEDIUM,
@@ -173,7 +173,7 @@ const byte ani_frames[] PROGMEM = {
 };
 
 
-const byte ani_images[][8] PROGMEM = {
+const byte ani_images[][8]  = {
 { // 0 IMG_WIFI_FULL
   B11010101,
   B11010101,
