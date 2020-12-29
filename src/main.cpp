@@ -27,7 +27,8 @@ FASTLED_USING_NAMESPACE
 
 const char compiletime[] = __TIME__;
 const char compiledate[] = __DATE__;
-String SW_VERSION = "0.3.0";
+#define SW_VERSION_DEF "0.3.1"
+String SW_VERSION = SW_VERSION_DEF;
 
 
 #define NUMBER_OF_DEVICES 1
@@ -74,6 +75,8 @@ byte notifier_speed = 3;    // brightness increase/decrease per frame
 byte notifier_frame = 10;   // ms of frame for fading/pulsating notifier led
 byte notifier_brightness = 128;
 CHSV notifier_color;
+
+const String configFile = "config.json";
 
 HomieNode infoNode("info", "info", "info");
 HomieNode configNode("config", "config", "config");
@@ -138,17 +141,25 @@ void readConfig(String filename) {
         std::unique_ptr<char[]> buf(new char[size]);
 
         configFile.readBytes(buf.get(), size);
+        DPRINTLN(buf.get());
         DynamicJsonDocument json(2048);
         DeserializationError error = deserializeJson(json, buf.get());
+        serializeJson(json,Serial);
 //        JsonObject& json = jsonBuffer.parseObject(buf.get());
 #ifdef DEBUG
-        deserializeJson(json,Serial);
+//        deserializeJson(json,Serial);
 #endif
         if (!error) {
           DPRINTLN(F("\nparsed json"));
 
             brightness = json["brightness"];
             reboot_counter = json["reboot_counter"];
+            color_standard.hue = json["color"];
+            color_standard.value = json["notifierBrightness"];
+            
+            DPRINT(F("config values for brightness:")); DPRINTLN(brightness);
+            DPRINT(F("config values for reboot_counter:")); DPRINTLN(reboot_counter);
+            DPRINT(F("config values for color:")); DPRINTLN(color_standard.hue);
 
         } else {
           DPRINTLN(F("failed to load json config"));
@@ -167,6 +178,8 @@ void writeConfig(String filename) {
 
   json["brightness"] = brightness;
   json["reboot_counter"] = reboot_counter;
+  json["color"] = color_standard.hue;
+  json["notifierBrightness"] = color_standard.value;
 
   File configFile = SPIFFS.open(filename, "w");
   if (!configFile) {
@@ -559,6 +572,14 @@ bool messageHandler(const HomieRange& range, const String& value) {
   return true;
 }
 
+bool saveHandler(const HomieRange& range, const String& value) {
+  if (value != "true") return false;
+  DPRINT(F("Received a save config request..."));
+  writeConfig(configFile);
+  DPRINTLN(F("done"));
+  return true;
+}
+
 bool setBrightnessHandler(const HomieRange& range, const String& value) {
   if (value == "") return false;
   int newVal = value.toInt();
@@ -619,12 +640,14 @@ void setup() {
   DPRINTLN(compiletime);
   DPRINTLN(F("starting..."));
   //GPIO 3 (RX) swap the pin to a GPIO.
+
   DPRINT(F("setting up pins..."));
   pinMode(3, FUNCTION_3);
   pinMode(LEFT_PIN, INPUT);
   pinMode(RIGHT_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   DPRINTLN(F("done."));
+
   DPRINT(F("setting up FastLED..."));
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, 1).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(255);
@@ -637,10 +660,12 @@ void setup() {
   DPRINT(F("setting up ledMatrix..."));
   ledMatrix.init();
   DPRINTLN(F("done."));
-  ledMatrix.setIntensity(0);
+
   DPRINT(F("showing power on logo..."));
+  ledMatrix.setIntensity(0);
   animationStart(ANI_POWERON, 1);
   DPRINTLN(F("done."));
+
   DPRINT(F("showing boot animation..."));
   for (int i=1; i<16; i++) {
     delay(25);
@@ -660,8 +685,11 @@ void setup() {
   DPRINT(F("reading config..."));
   showImage(IMG_REBOOT_0);
   delay(800);
-  readConfig("/config.json");
+  readConfig(configFile);
+  leds[0] = color_standard;
+  FastLED.show();
   DPRINTLN(F("done."));
+
   reboot_counter++;
   DPRINT(F("Reboot no. "));
   DPRINTLN(reboot_counter);
@@ -672,28 +700,31 @@ void setup() {
     delay(200);
     showImage(IMG_REBOOT_0);
   }
-  writeConfig("/config.json");
+  writeConfig(configFile);
   DPRINTLN(F("done."));
+
   DPRINT(F("checking if setup mode is requested..."));
   ledMatrix.setIntensity(brightness); // range is 0-15
   if (reboot_counter > 2) {
     DPRINTLN (F("OK, hard reset after 3 reboots. Deleting existing config."));
     SPIFFS.remove("/homie/config.json"); 
     reboot_counter = 0;
-    writeConfig("/config.json");
+    writeConfig(configFile);
   }
   DPRINTLN(F("done."));
 
   // Homie Setup
   DPRINT(F("setting up Homie nodes..."));
   WiFi.disconnect();
-  Homie_setFirmware("Wordclock Mini", "0.3.0"); // The underscore is not a typo! See Magic bytes
+  Homie_setFirmware("Wordclock Mini", SW_VERSION_DEF); // The underscore is not a typo! See Magic bytes
   Homie.disableLedFeedback(); // before Homie.setup()
   infoNode.advertise("message").settable(messageHandler);
   configNode.advertise("brightness").settable(setBrightnessHandler); // brightness of display 1-15
   configNode.advertise("notifierBrightness").settable(setNotifierBrightnessHandler); // intensity of color led 1-128=fade from black to color, 129-255 fade from color to white
   configNode.advertise("notifierColor").settable(setNotifierColorHandler); // hue of color led 
+  configNode.advertise("save").settable(saveHandler); // save the configuration 
   DPRINTLN(F("done."));
+
 //  Homie.onEvent(onHomieEvent);
   DPRINT(F("setting up Homie..."));
   Homie.setup();
@@ -703,8 +734,8 @@ void setup() {
   DPRINT(F("setting up NTP..."));
 //  ntpStart(5);
   configTime(0*3600,0,"de.pool.ntp.org"); // UTC only, we'll make it local time later on
-  
   DPRINTLN(F("done."));
+  
   DPRINT(F("setting up boot message..."));
   ledMatrix.setTextProportional(F("Wordclock Mini"));
   tick_timer = 0;
@@ -730,9 +761,10 @@ void setup() {
 //  timeval tv = { 1552646380, 0 };
 //  settimeofday(&tv, 0);
   reboot_counter = 0;
-  writeConfig("/config.json");
+  writeConfig(configFile);
   reboot_counter_reset = true;
   DPRINTLN(F("done."));
+  
   DPRINTLN(F("Moving over to main loop."));
 
 }
