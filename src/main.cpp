@@ -765,7 +765,7 @@ void loopFaderMatrix() {
       switch (fade_mode) {
         case FADE_OUT:
           fader--;
-          DPRINTLN("Fading out");
+          DPRINTLN(F("Fading out"));
           if (fader<=0) {
             state = next_state;
             fader = 0;
@@ -775,18 +775,18 @@ void loopFaderMatrix() {
             next_tick = 0;
             segments = 0;
             next_frame = true;
-            DPRINTLN("Fade out done, switching to black");
+            DPRINTLN(F("Fade out done, switching to black"));
           }
           break;
         case FADE_BLACK:
           fader_black_frames++;
           ledMatrix.mute();
-          DPRINT("Black frame no. "); DPRINTLN(fader_black_frames);
+          DPRINT(F("Black frame no. ")); DPRINTLN(fader_black_frames);
           fader = 0;
           if (fader_black_frames > FADER_BLACK_FRAMES) {
             ledMatrix.unmute();
             fade_mode = FADE_IN;
-            DPRINTLN("Fade black done, preparing to fade in");
+            DPRINTLN(F("Fade black done, preparing to fade in"));
           }
           break;
         case FADE_IN:
@@ -795,7 +795,8 @@ void loopFaderMatrix() {
           if (fader >= brightness) {
             fader = brightness;
             fade_mode = FADE_NORMAL;
-            DPRINTLN("Fading in done");
+            DPRINT(F("Fading in done - fader: "));
+            DPRINTLN(fader);
           }
           break;
       };
