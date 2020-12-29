@@ -504,21 +504,21 @@ bool getNextMessagePart() {
 void getNextMessage() {
   //
   if (allMessages.equals("")) return;
-  DPRINT("allMessages: ");DPRINTLN(allMessages);
+  DPRINT(F("allMessages: "));DPRINTLN(allMessages);
   int pos = allMessages.indexOf("^EoM");
-  DPRINT("pos: ");DPRINTLN(pos);
+  DPRINT(F("pos: "));DPRINTLN(pos);
   if (pos >= 0) {
     newMessage = allMessages.substring(0, pos);
-    DPRINT("newMessage: ");DPRINTLN(newMessage);
+    DPRINT(F("newMessage: "));DPRINTLN(newMessage);
     if (allMessages.length() > newMessage.length()+5) {
       allMessages = allMessages.substring(pos + 5);
     } else {
       allMessages = "";
     }
-    DPRINT("allMessages: ");DPRINTLN(allMessages);
+    DPRINT(F("allMessages: "));DPRINTLN(allMessages);
   } else {
     newMessage = allMessages;
-    DPRINT("newMessage direkt übernommen: ");DPRINTLN(newMessage);
+    DPRINT(F("newMessage direkt übernommen: "));DPRINTLN(newMessage);
     allMessages = "";
   }
 }
@@ -552,8 +552,8 @@ bool messageHandler(const HomieRange& range, const String& value) {
 //  newMessage = value;
   lastMessage = value;
   allMessages += value + "^EoM^";
-  DPRINT("Received new message: "); DPRINTLN(value);
-  DPRINT("allMessages: "); DPRINTLN(allMessages);
+  DPRINT(F("Received new message: ")); DPRINTLN(value);
+  DPRINT(F("allMessages: ")); DPRINTLN(allMessages);
   infoNode.setProperty("message").send(value);
   infoNode.setProperty("status").send("RECEIVED");
   return true;
@@ -565,7 +565,7 @@ bool setBrightnessHandler(const HomieRange& range, const String& value) {
   if ((newVal < 1) || (newVal>15)) return false;
   brightness = newVal;
   if (fade_mode == FADE_NORMAL) ledMatrix.setIntensity(brightness); // range is 0-15
-  DPRINT("CONFIG: new brightness: "); DPRINTLN(value);
+  DPRINT(F("CONFIG: new brightness: ")); DPRINTLN(value);
   configNode.setProperty("brightness").send(value);
   return true;
 }
@@ -580,7 +580,7 @@ bool setNotifierBrightnessHandler(const HomieRange& range, const String& value) 
     leds[0] = notifier_color;
     FastLED.show();
   }
-  DPRINT("CONFIG: new notifier brightness: "); DPRINTLN(value);
+  DPRINT(F("CONFIG: new notifier brightness: ")); DPRINTLN(value);
   configNode.setProperty("notifierBrightness").send(value);
   return true;
 }
@@ -597,7 +597,7 @@ bool setNotifierColorHandler(const HomieRange& range, const String& value) {
     color_next = color_standard;
     notifier_mode = FADE_OUT;
   }
-  DPRINT("CONFIG: new notifier hue: "); DPRINTLN(value);
+  DPRINT(F("CONFIG: new notifier hue: ")); DPRINTLN(value);
   configNode.setProperty("notifierColor").send(value);
   return true;
 }
@@ -743,7 +743,7 @@ bool hasTimeBeenSet() {
 
 bool checkWifiConnection() {
   if ((state != STATE_NO_WIFI) && (WiFi.status() != WL_CONNECTED)) {
-    DPRINTLN("No wifi detected");
+    DPRINTLN(F("No wifi detected"));
     state = STATE_NO_WIFI;
     animationStart(ANI_WIFI, 0);
     segments = 0;
@@ -791,7 +791,7 @@ void loopFaderMatrix() {
           break;
         case FADE_IN:
           fader++;
-          DPRINTLN("Fading in");
+          DPRINTLN(F("Fading in"));
           if (fader >= brightness) {
             fader = brightness;
             fade_mode = FADE_NORMAL;
@@ -870,7 +870,7 @@ void loop() {
     DPRINT("LED hue: "); DPRINTLN(led.hue);
     DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); */
     if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
-      DPRINTLN("Show the pending message. "); 
+      DPRINTLN(F("Show the pending message. ")); 
       getNextMessage();
       next_state = STATE_MESSAGE;
       fade_mode = FADE_OUT;
@@ -888,15 +888,15 @@ void loop() {
         ledMatrix.unmute();
         if (next_frame) {
           ledMatrix.setTextProportional(newMessage);
-          DPRINT("set text to: "); DPRINTLN(newMessage); 
+          DPRINT(F("set text to: ")); DPRINTLN(newMessage); 
           next_frame = false; 
         } else {
           ledMatrix.scrollTextLeftProportional();
-          DPRINTLN("scrolling text ");  
+          DPRINTLN(F("scrolling text "));  
           ledMatrix.drawTextProportional();
           ledMatrix.commit();
           if (ledMatrix.isScrollingDone()) {
-            DPRINTLN("scrolling text done, now fade out over to time");  
+            DPRINTLN(F("scrolling text done, now fade out over to time"));  
             fade_mode = FADE_OUT;
             next_state = STATE_TIME;
             segments = 0;
