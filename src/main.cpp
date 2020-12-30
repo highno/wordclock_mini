@@ -22,6 +22,7 @@
 #define FASTLED_ALLOW_INTERRUPTS 0
 #define FASTLED_ESP8266_D1_PIN_ORDER
 #include "FastLED.h"
+#include <AceButton.h>
 
 FASTLED_USING_NAMESPACE
 
@@ -116,6 +117,10 @@ String lastMessage = "";
 #define FADER_BLACK_FRAMES 3
 #define SHOW_ON_LED false
 #define DONT_SHOW_ON_LED true
+
+ace_button::ButtonConfig buttonConfig;
+ace_button::AceButton leftButton(&buttonConfig, LEFT_PIN, LOW, 0);
+ace_button::AceButton rightButton(&buttonConfig, RIGHT_PIN, LOW, 1);
 
 // timezone definitions
 TimeChangeRule CEST = { "CEST", Last, Sun, Mar, 2, 120 };     //Central European Summer Time
@@ -623,6 +628,60 @@ bool setNotifierColorHandler(const HomieRange& range, const String& value) {
   return true;
 }
 
+void handleEvent(ace_button::AceButton* button, uint8_t eventType, uint8_t buttonState) {
+
+  // Print out a message for all events, for both buttons.
+  DPRINT(F("handleEvent(): pin: "));
+  DPRINT(button->getPin());
+  DPRINT(F("; eventType: "));
+  DPRINT(eventType);
+  DPRINT(F("; buttonState: "));
+  DPRINTLN(buttonState);
+
+
+  switch (eventType) {
+    case ace_button::AceButton::kEventPressed:
+      if (button->getPin() == LEFT_PIN) {
+        DPRINTLN(F("  left pressed"));
+      }
+      if (button->getPin() == RIGHT_PIN) {
+        DPRINTLN(F("  right pressed"));
+      }
+      break;
+    case ace_button::AceButton::kEventReleased:
+      if (button->getPin() == LEFT_PIN) {
+        DPRINTLN(F("  left released"));
+      }
+      if (button->getPin() == RIGHT_PIN) {
+        DPRINTLN(F("  right released"));
+      }
+      break;
+    case ace_button::AceButton::kEventClicked:
+      if (button->getPin() == LEFT_PIN) {
+        DPRINTLN(F("  left clicked"));
+      }
+      if (button->getPin() == RIGHT_PIN) {
+        DPRINTLN(F("  right clicked"));
+      }
+      break;
+    case ace_button::AceButton::kEventDoubleClicked:
+      if (button->getPin() == LEFT_PIN) {
+        DPRINTLN(F("  left doubleclicked"));
+      }
+      if (button->getPin() == RIGHT_PIN) {
+        DPRINTLN(F("  right doubleclicked"));
+      }
+      break;
+    case ace_button::AceButton::kEventLongPressed:
+      if (button->getPin() == LEFT_PIN) {
+        DPRINTLN(F("  left long pressed"));
+      }
+      if (button->getPin() == RIGHT_PIN) {
+        DPRINTLN(F("  right long pressed"));
+      }
+      break;
+  }
+}
 
 void setup() {
 
@@ -658,6 +717,7 @@ void setup() {
   DPRINTLN(F("done."));
   
   DPRINT(F("setting up ledMatrix..."));
+  delay(200);  // LED Matrix needs a few milliseconds to properly power up...
   ledMatrix.init();
   DPRINTLN(F("done."));
 
@@ -713,6 +773,14 @@ void setup() {
   }
   DPRINTLN(F("done."));
 
+  DPRINT(F("setting up buttons..."));
+  buttonConfig.setEventHandler(handleEvent);
+  buttonConfig.setFeature(ace_button::ButtonConfig::kFeatureClick);
+  buttonConfig.setFeature(ace_button::ButtonConfig::kFeatureDoubleClick);
+  buttonConfig.setFeature(ace_button::ButtonConfig::kFeatureLongPress);
+  buttonConfig.setFeature(ace_button::ButtonConfig::kFeatureSuppressAll);
+  DPRINTLN(F("done."));
+
   // Homie Setup
   DPRINT(F("setting up Homie nodes..."));
   WiFi.disconnect();
@@ -764,7 +832,7 @@ void setup() {
   writeConfig(configFile);
   reboot_counter_reset = true;
   DPRINTLN(F("done."));
-  
+
   DPRINTLN(F("Moving over to main loop."));
 
 }
@@ -878,11 +946,14 @@ void loopFaderNotifier() {
 
 void loop() {
   Homie.loop();
+  leftButton.check();
+  rightButton.check();
 
   if (checkWifiConnection()) checkNTP();
   loopFaderMatrix();
   loopFaderNotifier();
 
+/*  // Button handling will be moved...
   if (digitalRead(LEFT_PIN)==HIGH) { 
     // 1552646380 = Testzeit 15.03.2019 10:39:39
     timeval tv = { 1552646380, 0 };
@@ -895,12 +966,12 @@ void loop() {
   }
   if (digitalRead(RIGHT_PIN)==HIGH) {
     debugOutTime("aktuell: ", local);
-/*    DPRINT("aktuell t_time: "); DPRINTLN(local);
+    DPRINT("aktuell t_time: "); DPRINTLN(local);
     led.hue += 1;
     leds[0] = led;
     FastLED.show();
     DPRINT("LED hue: "); DPRINTLN(led.hue);
-    DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); */
+    DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); 
     if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
       DPRINTLN(F("Show the pending message. ")); 
       getNextMessage();
@@ -910,6 +981,7 @@ void loop() {
     }
     delay(15);
   }
+*/
 
   if ((tick_timer > next_tick) && (fade_mode != FADE_OUT)) {
     tick_timer = 0;
