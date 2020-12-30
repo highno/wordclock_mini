@@ -5,7 +5,6 @@
 #define DEBUG 1
 
 #include <Homie.h>                 // version 2.0.0, manual install from homepage
-//#include "MyNTP.h"
 #include "debug.h"
 #include <time.h>
 #include <TimeLib.h>
@@ -28,13 +27,13 @@ FASTLED_USING_NAMESPACE
 
 const char compiletime[] = __TIME__;
 const char compiledate[] = __DATE__;
-#define SW_VERSION_DEF "0.3.1"
+#define SW_VERSION_DEF "0.3.2"
 String SW_VERSION = SW_VERSION_DEF;
 
 
 #define NUMBER_OF_DEVICES 1
 #define CS_PIN D2
-// LED Matrix is to be connected to Wemos as follows:
+// LED Matrix is to be connected to Wemos D1 Mini as follows:
 //         CS - D2
 // MOSI (DIN) - D7
 //        CLK - D5
@@ -79,8 +78,10 @@ CHSV notifier_color;
 
 const String configFile = "config.json";
 
+
 HomieNode infoNode("info", "info", "info");
 HomieNode configNode("config", "config", "config");
+HomieNode buttonNode("button", "button", "button");
 int wifiSetup = 0;
 
 byte state = STATE_BOOT;
@@ -118,9 +119,14 @@ String lastMessage = "";
 #define SHOW_ON_LED false
 #define DONT_SHOW_ON_LED true
 
-ace_button::ButtonConfig buttonConfig;
-ace_button::AceButton leftButton(&buttonConfig, LEFT_PIN, LOW, 0);
-ace_button::AceButton rightButton(&buttonConfig, RIGHT_PIN, LOW, 1);
+#define BTN_LEFT 1
+#define BTN_RIGHT 2
+#define BTN_BOTH 3
+ace_button::Encoded4To2ButtonConfig buttonConfig(LEFT_PIN, RIGHT_PIN, LOW);
+ace_button::AceButton leftButton(&buttonConfig, BTN_LEFT, LOW);
+ace_button::AceButton rightButton(&buttonConfig, BTN_RIGHT, LOW);
+ace_button::AceButton bothButton(&buttonConfig, BTN_BOTH, LOW); //emulated "middle" button, when both buttons are pressed
+uint8_t btnMQTTMask[3] = {255, 255, 255}; // which events should be sent via MQTT
 
 // timezone definitions
 TimeChangeRule CEST = { "CEST", Last, Sun, Mar, 2, 120 };     //Central European Summer Time
@@ -628,63 +634,82 @@ bool setNotifierColorHandler(const HomieRange& range, const String& value) {
   return true;
 }
 
+boolean isNumeric(String str) {
+  unsigned int stringLength = str.length();
+  if (stringLength == 0) return false;
+
+  boolean seenDecimal = false;
+  for(unsigned int i = 0; i < stringLength; ++i) {
+    if (isDigit(str.charAt(i))) continue;
+    if (str.charAt(i) == '.') {
+      if (seenDecimal) return false;
+      seenDecimal = true;
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+
+bool buttonSetMaskHandler(const uint8_t btn, const String& value) {
+  DPRINT(F("  buttonNode SetMaskEventHandler called... Button:"));
+  DPRINT(btn);
+  DPRINT(F("; Value:"));
+  DPRINTLN(value);
+  int v = value.toInt();
+  if (!isNumeric(value)) return false;
+  if ((v>=0) && (v<256)) {
+    btnMQTTMask[btn-1] = v;
+    return true;
+  }
+  return false;
+}
+
+bool button1SetMaskHandler(const HomieRange& range, const String& value) {
+  return buttonSetMaskHandler(1, value);
+}
+
+bool button2SetMaskHandler(const HomieRange& range, const String& value) {
+  return buttonSetMaskHandler(2, value);
+}
+
+bool button3SetMaskHandler(const HomieRange& range, const String& value) {
+  return buttonSetMaskHandler(3, value);
+}
+
+
+void checkMessages() {
+  if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
+    DPRINTLN(F("Show the pending message. ")); 
+    getNextMessage();
+    next_state = STATE_MESSAGE;
+    fade_mode = FADE_OUT;
+    next_tick = 1;     
+  }
+}
+
 void handleEvent(ace_button::AceButton* button, uint8_t eventType, uint8_t buttonState) {
-
-  // Print out a message for all events, for both buttons.
-  DPRINT(F("handleEvent(): pin: "));
-  DPRINT(button->getPin());
-  DPRINT(F("; eventType: "));
-  DPRINT(eventType);
-  DPRINT(F("; buttonState: "));
-  DPRINTLN(buttonState);
-
-
-  switch (eventType) {
-    case ace_button::AceButton::kEventPressed:
-      if (button->getPin() == LEFT_PIN) {
-        DPRINTLN(F("  left pressed"));
-      }
-      if (button->getPin() == RIGHT_PIN) {
-        DPRINTLN(F("  right pressed"));
-      }
-      break;
-    case ace_button::AceButton::kEventReleased:
-      if (button->getPin() == LEFT_PIN) {
-        DPRINTLN(F("  left released"));
-      }
-      if (button->getPin() == RIGHT_PIN) {
-        DPRINTLN(F("  right released"));
-      }
-      break;
-    case ace_button::AceButton::kEventClicked:
-      if (button->getPin() == LEFT_PIN) {
-        DPRINTLN(F("  left clicked"));
-      }
-      if (button->getPin() == RIGHT_PIN) {
-        DPRINTLN(F("  right clicked"));
-      }
-      break;
-    case ace_button::AceButton::kEventDoubleClicked:
-      if (button->getPin() == LEFT_PIN) {
-        DPRINTLN(F("  left doubleclicked"));
-      }
-      if (button->getPin() == RIGHT_PIN) {
-        DPRINTLN(F("  right doubleclicked"));
-      }
-      break;
-    case ace_button::AceButton::kEventLongPressed:
-      if (button->getPin() == LEFT_PIN) {
-        DPRINTLN(F("  left long pressed"));
-      }
-      if (button->getPin() == RIGHT_PIN) {
-        DPRINTLN(F("  right long pressed"));
-      }
-      break;
+  uint8_t btn = button->getPin();
+  String eventNames[] = {
+    "press", "idle", "click", "doubleclick", "longpress"
+  };
+  if ((btn < 1) || (btn > 3)) return;
+  if ((eventType >= 0) && (eventType < 5)) {
+    DPRINT(F(" Button "));
+    DPRINT(btn);
+    DPRINT(F(" detected "));
+    DPRINT(eventNames[eventType]);
+    if (btnMQTTMask[btn-1] & 1 << eventType) {
+      buttonNode.setProperty("btn" + String(btn)).send(eventNames[eventType]);
+      if (eventType != 1) buttonNode.setProperty("btn" + String(btn)).send(eventNames[1]);
+      DPRINTLN(F(" and sent via MQTT."));
+    } else {
+      DPRINTLN(F(" but was masked for MQTT."));
+    }
   }
 }
 
 void setup() {
-
   // Open serial communications and wait for port to open
 #ifdef DEBUG
   Serial.begin(115200);
@@ -791,6 +816,12 @@ void setup() {
   configNode.advertise("notifierBrightness").settable(setNotifierBrightnessHandler); // intensity of color led 1-128=fade from black to color, 129-255 fade from color to white
   configNode.advertise("notifierColor").settable(setNotifierColorHandler); // hue of color led 
   configNode.advertise("save").settable(saveHandler); // save the configuration 
+  buttonNode.advertise("btn1"); 
+  buttonNode.advertise("btn2"); 
+  buttonNode.advertise("btn3"); 
+  buttonNode.advertise("btn1_mask").settable(button1SetMaskHandler);
+  buttonNode.advertise("btn2_mask").settable(button2SetMaskHandler); 
+  buttonNode.advertise("btn3_mask").settable(button3SetMaskHandler);
   DPRINTLN(F("done."));
 
 //  Homie.onEvent(onHomieEvent);
@@ -948,6 +979,7 @@ void loop() {
   Homie.loop();
   leftButton.check();
   rightButton.check();
+  bothButton.check();
 
   if (checkWifiConnection()) checkNTP();
   loopFaderMatrix();
