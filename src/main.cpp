@@ -524,17 +524,6 @@ void debugOutTime(String s, time_t t) {
 
 const char validCharset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 #*+\\|\",-_:;=?!$&/()<>'"; 
 
-bool getNextMessagePart() {
-  // called if an old message part is done (scrolled through or animation done)
-  // prepares the text oder animation for display 
-  // returns true if another part has been prepared or false if there are no other message parts 
-  String result = "";
-  int pos = -1;
-/*  while (!s.equals("")) {
-    pos = s.substr
-  }*/
-}
-
 void getNextMessage() {
   //
   if (allMessages.equals("")) return;
@@ -1130,36 +1119,6 @@ void loop() {
   if (checkWifiConnection()) checkNTP();
   loopFaderMatrix();
   loopFaderNotifier();
-
-/*  // Button handling will be moved...
-  if (digitalRead(LEFT_PIN)==HIGH) { 
-    // 1552646380 = Testzeit 15.03.2019 10:39:39
-    timeval tv = { 1552646380, 0 };
-    settimeofday(&tv, 0);
-//    DPRINT("aktuell t_time"); DPRINTLN(local);
-    led.hue += 254;
-    leds[0] = led;
-    FastLED.show();
-    delay(15);
-  }
-  if (digitalRead(RIGHT_PIN)==HIGH) {
-    debugOutTime("aktuell: ", local);
-    DPRINT("aktuell t_time: "); DPRINTLN(local);
-    led.hue += 1;
-    leds[0] = led;
-    FastLED.show();
-    DPRINT("LED hue: "); DPRINTLN(led.hue);
-    DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); 
-    if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
-      DPRINTLN(F("Show the pending message. ")); 
-      getNextMessage();
-      next_state = STATE_MESSAGE;
-      fade_mode = FADE_OUT;
-      next_tick = 1;     
-    }
-    delay(15);
-  }
-*/
 
   if ((tick_timer > next_tick) && (fade_mode != FADE_OUT)) {
     tick_timer = 0;
