@@ -122,11 +122,21 @@ String lastMessage = "";
 #define BTN_LEFT 1
 #define BTN_RIGHT 2
 #define BTN_BOTH 3
+#define BTN_FUNC_MAX 10
+#define BTN_FUNC_NOTHING      0
+#define BTN_FUNC_CHECKMSG     1
+#define BTN_FUNC_DEBUGOUT     2
+
 ace_button::Encoded4To2ButtonConfig buttonConfig(LEFT_PIN, RIGHT_PIN, LOW);
 ace_button::AceButton leftButton(&buttonConfig, BTN_LEFT, LOW);
 ace_button::AceButton rightButton(&buttonConfig, BTN_RIGHT, LOW);
 ace_button::AceButton bothButton(&buttonConfig, BTN_BOTH, LOW); //emulated "middle" button, when both buttons are pressed
 uint8_t btnMQTTMask[3] = {255, 255, 255}; // which events should be sent via MQTT
+uint8_t btnEventFunction[3][5] = {
+  {BTN_FUNC_NOTHING, BTN_FUNC_NOTHING, BTN_FUNC_CHECKMSG, BTN_FUNC_DEBUGOUT, BTN_FUNC_NOTHING},
+  {BTN_FUNC_NOTHING, BTN_FUNC_NOTHING, BTN_FUNC_DEBUGOUT, BTN_FUNC_CHECKMSG, BTN_FUNC_NOTHING},
+  {BTN_FUNC_NOTHING, BTN_FUNC_NOTHING, BTN_FUNC_NOTHING, BTN_FUNC_DEBUGOUT, BTN_FUNC_CHECKMSG}
+}; 
 
 // timezone definitions
 TimeChangeRule CEST = { "CEST", Last, Sun, Mar, 2, 120 };     //Central European Summer Time
@@ -514,17 +524,6 @@ void debugOutTime(String s, time_t t) {
 
 const char validCharset[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 #*+\\|\",-_:;=?!$&/()<>'"; 
 
-bool getNextMessagePart() {
-  // called if an old message part is done (scrolled through or animation done)
-  // prepares the text oder animation for display 
-  // returns true if another part has been prepared or false if there are no other message parts 
-  String result = "";
-  int pos = -1;
-/*  while (!s.equals("")) {
-    pos = s.substr
-  }*/
-}
-
 void getNextMessage() {
   //
   if (allMessages.equals("")) return;
@@ -677,6 +676,95 @@ bool button3SetMaskHandler(const HomieRange& range, const String& value) {
   return buttonSetMaskHandler(3, value);
 }
 
+bool buttonSetFunctionHandler(const uint8_t btn, const uint8_t event, const String& value) {
+  DPRINT(F("  buttonNode SetFunctionHandler called... Button:"));
+  DPRINT(btn);
+  DPRINT(F("; Event:"));
+  DPRINT(event);
+  DPRINT(F("; Function:"));
+  DPRINTLN(value);
+  int v = value.toInt();
+  if (!isNumeric(value)) return false;
+  if (event>4) return false;
+  if ((v>=0) && (v<BTN_FUNC_MAX)) {
+    btnEventFunction[btn-1][event] = v;
+    return true;
+  }
+  return false;
+}
+
+bool button1SetFunctionHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 0, value);
+}
+
+bool button2SetFunctionHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 0, value);
+}
+
+bool button3SetFunctionHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 0, value);
+}
+
+bool button1SetFunctionPressHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 0, value);
+}
+
+bool button2SetFunctionPressHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 0, value);
+}
+
+bool button3SetFunctionPressHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 0, value);
+}
+
+bool button1SetFunctionReleaseHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 1, value);
+}
+
+bool button2SetFunctionReleaseHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 1, value);
+}
+
+bool button3SetFunctionReleaseHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 1, value);
+}
+
+bool button1SetFunctionClickHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 2, value);
+}
+
+bool button2SetFunctionClickHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 2, value);
+}
+
+bool button3SetFunctionClickHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 2, value);
+}
+
+bool button1SetFunctionDoubleHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 3, value);
+}
+
+bool button2SetFunctionDoubleHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 3, value);
+}
+
+bool button3SetFunctionDoubleHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 3, value);
+}
+
+bool button1SetFunctionLongHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(1, 4, value);
+}
+
+bool button2SetFunctionLongHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(2, 4, value);
+}
+
+bool button3SetFunctionLongHandler(const HomieRange& range, const String& value) {
+  return buttonSetFunctionHandler(3, 4, value);
+}
+
 
 void checkMessages() {
   if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
@@ -687,6 +775,37 @@ void checkMessages() {
     next_tick = 1;     
   }
 }
+
+void debugMessage() {
+  DPRINTLN(F(" DEBUG click detected... "));
+}
+
+bool dispatchButtonFunction(uint8_t btn, uint8_t event) {
+  if ((btn<1) || (btn>3)) return false;
+  if (event>4) return false;
+  switch (btnEventFunction[btn-1][event]) {
+    case BTN_FUNC_NOTHING:
+      // do nothing
+      break;
+    case BTN_FUNC_CHECKMSG:
+      // show pending messages
+      checkMessages();
+      break;
+    case BTN_FUNC_DEBUGOUT:
+      // debug message on serial
+      debugMessage();
+      break;
+    default:
+      DPRINT(F(" DEBUG Invalid function: button "));
+      DPRINT(btn);
+      DPRINT(F(", event "));
+      DPRINT(event);
+      DPRINT(F(", function "));
+      DPRINTLN(btnEventFunction[btn-1][event]);
+      break;      
+  }
+}
+
 
 void handleEvent(ace_button::AceButton* button, uint8_t eventType, uint8_t buttonState) {
   uint8_t btn = button->getPin();
@@ -706,6 +825,7 @@ void handleEvent(ace_button::AceButton* button, uint8_t eventType, uint8_t butto
     } else {
       DPRINTLN(F(" but was masked for MQTT."));
     }
+    dispatchButtonFunction(btn, eventType);
   }
 }
 
@@ -822,6 +942,21 @@ void setup() {
   buttonNode.advertise("btn1_mask").settable(button1SetMaskHandler);
   buttonNode.advertise("btn2_mask").settable(button2SetMaskHandler); 
   buttonNode.advertise("btn3_mask").settable(button3SetMaskHandler);
+  buttonNode.advertise("btn1_func_press").settable(button1SetFunctionPressHandler);
+  buttonNode.advertise("btn2_func_press").settable(button1SetFunctionPressHandler); 
+  buttonNode.advertise("btn3_func_press").settable(button1SetFunctionPressHandler);
+  buttonNode.advertise("btn1_func_release").settable(button1SetFunctionReleaseHandler);
+  buttonNode.advertise("btn2_func_release").settable(button1SetFunctionReleaseHandler); 
+  buttonNode.advertise("btn3_func_release").settable(button1SetFunctionReleaseHandler);
+  buttonNode.advertise("btn1_func_click").settable(button1SetFunctionClickHandler);
+  buttonNode.advertise("btn2_func_click").settable(button1SetFunctionClickHandler); 
+  buttonNode.advertise("btn3_func_click").settable(button1SetFunctionClickHandler);
+  buttonNode.advertise("btn1_func_double").settable(button1SetFunctionDoubleHandler);
+  buttonNode.advertise("btn2_func_double").settable(button1SetFunctionDoubleHandler); 
+  buttonNode.advertise("btn3_func_double").settable(button1SetFunctionDoubleHandler);
+  buttonNode.advertise("btn1_func_long").settable(button1SetFunctionLongHandler);
+  buttonNode.advertise("btn2_func_long").settable(button1SetFunctionLongHandler); 
+  buttonNode.advertise("btn3_func_long").settable(button1SetFunctionLongHandler);
   DPRINTLN(F("done."));
 
 //  Homie.onEvent(onHomieEvent);
@@ -984,36 +1119,6 @@ void loop() {
   if (checkWifiConnection()) checkNTP();
   loopFaderMatrix();
   loopFaderNotifier();
-
-/*  // Button handling will be moved...
-  if (digitalRead(LEFT_PIN)==HIGH) { 
-    // 1552646380 = Testzeit 15.03.2019 10:39:39
-    timeval tv = { 1552646380, 0 };
-    settimeofday(&tv, 0);
-//    DPRINT("aktuell t_time"); DPRINTLN(local);
-    led.hue += 254;
-    leds[0] = led;
-    FastLED.show();
-    delay(15);
-  }
-  if (digitalRead(RIGHT_PIN)==HIGH) {
-    debugOutTime("aktuell: ", local);
-    DPRINT("aktuell t_time: "); DPRINTLN(local);
-    led.hue += 1;
-    leds[0] = led;
-    FastLED.show();
-    DPRINT("LED hue: "); DPRINTLN(led.hue);
-    DPRINT("WiFi.status() = "); DPRINTLN(WiFi.status()); 
-    if (isMessagePending() && ((next_state != STATE_MESSAGE) && (state != STATE_MESSAGE))) {
-      DPRINTLN(F("Show the pending message. ")); 
-      getNextMessage();
-      next_state = STATE_MESSAGE;
-      fade_mode = FADE_OUT;
-      next_tick = 1;     
-    }
-    delay(15);
-  }
-*/
 
   if ((tick_timer > next_tick) && (fade_mode != FADE_OUT)) {
     tick_timer = 0;
