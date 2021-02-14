@@ -1,3 +1,5 @@
+#ifndef ___ledmatrix_h___
+#define ___ledmatrix_h___
 #include <Arduino.h>
 
 // max7219 registers
@@ -157,3 +159,5 @@ private:
     void calculateTextAlignmentOffset();
     void calculateTextAlignmentOffsetProportional();
 };
+
+#endif
