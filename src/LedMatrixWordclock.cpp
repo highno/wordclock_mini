@@ -8,10 +8,6 @@ LedMatrixWordclock::LedMatrixWordclock(LedMatrix& matrix) {
     pLedMatrix = &matrix;
 }
 
-void LedMatrixWordclock::test() {
-    Serial.println("Ok, object created");
-}
-
 void LedMatrixWordclock::showSegment(byte segmentId, bool noShow) {
   newSegments += 1 << segmentId;
   LedMatrix ledMatrix = (*pLedMatrix);

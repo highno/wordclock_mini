@@ -30,7 +30,6 @@ public:
      * matrix: Reference to the LedMatrix object to display on
      */
     LedMatrixWordclock(LedMatrix& matrix) ;
-    void test(); 
     void showSegment(byte segmentId, bool noShow);
     void showWordsOnLED(time_t local, bool noShow);
     long getNewSegments();

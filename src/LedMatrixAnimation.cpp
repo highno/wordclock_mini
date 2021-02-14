@@ -8,10 +8,6 @@ LedMatrixAnimation::LedMatrixAnimation(LedMatrix& matrix) {
     pLedMatrix = &matrix;
 }
 
-void LedMatrixAnimation::test() {
-    Serial.println("Ok, object created");
-}
-
 bool LedMatrixAnimation::animationDone() {
   return animation_done;
 }

@@ -13,12 +13,11 @@ public:
      * matrix: Reference to the LedMatrix object to display on
      */
     LedMatrixAnimation(LedMatrix& matrix) ;
-    void test(); 
     bool animationDone();
     void showImage(byte imageId);
     void animationLoop();
     void animationStart(byte animation, byte repeats);
-    
+
 private:
     LedMatrix* pLedMatrix;
     bool animation_done = true;
