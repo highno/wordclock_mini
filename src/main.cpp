@@ -18,7 +18,8 @@
 #include <SPI.h>
 #include "LedMatrix.h"
 #include "LedMatrixWordclock.h"
-#include "animations.h"
+#include "LedMatrixAnimation.h"
+#include "animations.h" //
 #define FASTLED_ALLOW_INTERRUPTS 0
 #define FASTLED_ESP8266_D1_PIN_ORDER
 #include "FastLED.h"
@@ -28,7 +29,7 @@ FASTLED_USING_NAMESPACE
 
 const char compiletime[] = __TIME__;
 const char compiledate[] = __DATE__;
-#define SW_VERSION_DEF "0.3.2"
+#define SW_VERSION_DEF "0.3.3"
 String SW_VERSION = SW_VERSION_DEF;
 
 
@@ -63,6 +64,7 @@ String SW_VERSION = SW_VERSION_DEF;
 
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CS_PIN);
 LedMatrixWordclock wordclockDisplay = LedMatrixWordclock(ledMatrix);
+LedMatrixAnimation animateDisplay = LedMatrixAnimation(ledMatrix);
 
 CRGB leds[1];
 CHSV led;
@@ -96,20 +98,13 @@ int8_t fader = brightness;
 elapsedMillis fade_timer = 0;
 elapsedMillis tick_timer = 0;
 elapsedMillis state_timer = 0;
-elapsedMillis animation_timer = 0;
 elapsedMillis reboot_counter_reset_timer = 0;
 byte reboot_counter = 0;
 bool reboot_counter_reset = false;
 byte fade_mode = FADE_NORMAL;
 byte fader_black_frames = 0;
 long segments = 0;
-long newSegments = 0;
-byte active_animation = 0;
-word active_animation_frame = 0;
-byte active_animation_speed = 0;
-byte active_animation_repeat = 0;
-byte active_animation_cycle = 0;
-bool animation_done = true;
+
 String newMessage = "";
 String allMessages = "";
 String lastMessage = "";
@@ -268,55 +263,6 @@ void onHomieEvent(const HomieEvent& event) {
 }
 
 
-bool animationDone() {
-  return animation_done;
-}
-
-void showImage(byte imageId) {
-  for (int i=0; i<8; i++) {
-    ledMatrix.setColumn(i,ani_images[imageId][i]);
-  }
-  ledMatrix.commit();  
-}
-
-void animationShowFrame() {
-  if (active_animation_frame >= ani_start[active_animation + 1]) {
-    active_animation_frame = ani_start[active_animation];
-    active_animation_cycle++;
-    if (active_animation_cycle >= active_animation_repeat) {
-      if (active_animation_repeat == 0) {
-        active_animation_cycle = 0;        
-      } else {
-        animation_done = true;
-      }
-    }
-  }
-  if (!animation_done) {
-    showImage(ani_frames[active_animation_frame]);
-    active_animation_frame++;
-  }
-}
-
-void animationLoop() {
-  if (animation_timer > active_animation_speed) {
-    animation_timer -= active_animation_speed;
-    animationShowFrame();
-  }
-}
-
-void animationStart(byte animation, byte repeats) {
-  DPRINT(F("(init frame) "));
-  animation_timer = 0;
-  active_animation = animation;
-  DPRINT(F("(access frame memory) "));
-  active_animation_frame = ani_start[active_animation];
-  active_animation_speed = ani_speed[active_animation];
-  active_animation_repeat = repeats;
-  active_animation_cycle = 0;
-  animation_done = false;
-  DPRINT(F("(showing frame) "));
-  animationShowFrame();
-}
 
 void debugOutTime(String s, time_t t) {
   DPRINT(s);
@@ -679,7 +625,7 @@ void setup() {
 
   DPRINT(F("showing power on logo..."));
   ledMatrix.setIntensity(0);
-  animationStart(ANI_POWERON, 1);
+  animateDisplay.animationStart(ANI_POWERON, 1);
   DPRINTLN(F("done."));
 
   DPRINT(F("showing boot animation..."));
@@ -687,19 +633,19 @@ void setup() {
     delay(25);
     ledMatrix.setIntensity(i);
   }
-  while (!animationDone()) {
+  while (!animateDisplay.animationDone()) {
     delay(10);
-    animationLoop();
+    animateDisplay.animationLoop();
   }
-  animationStart(ANI_CLOCK, 1);
-  while (!animationDone()) {
+  animateDisplay.animationStart(ANI_CLOCK, 1);
+  while (!animateDisplay.animationDone()) {
     delay(10);
-    animationLoop();
+    animateDisplay.animationLoop();
   }
   DPRINTLN(F("done."));
 
   DPRINT(F("reading config..."));
-  showImage(IMG_REBOOT_0);
+  animateDisplay.showImage(IMG_REBOOT_0);
   delay(800);
   readConfig(configFile);
   leds[0] = color_standard;
@@ -712,9 +658,9 @@ void setup() {
   DPRINT(F("saving reboot counter..."));
   for (int i=0; i<5; i++) {
     delay(200);
-    showImage(IMG_REBOOT_0 + reboot_counter);
+    animateDisplay.showImage(IMG_REBOOT_0 + reboot_counter);
     delay(200);
-    showImage(IMG_REBOOT_0);
+    animateDisplay.showImage(IMG_REBOOT_0);
   }
   writeConfig(configFile);
   DPRINTLN(F("done."));
@@ -822,7 +768,7 @@ bool checkWifiConnection() {
   if ((state != STATE_NO_WIFI) && (WiFi.status() != WL_CONNECTED)) {
     DPRINTLN(F("No wifi detected"));
     state = STATE_NO_WIFI;
-    animationStart(ANI_WIFI, 0);
+    animateDisplay.animationStart(ANI_WIFI, 0);
     segments = 0;
     return false;
   }  
@@ -832,7 +778,7 @@ bool checkWifiConnection() {
 bool checkNTP() {
   if (hasTimeBeenSet() || (state == STATE_NO_NTP)) return true;
   state = STATE_NO_NTP;
-  animationStart(ANI_CLOCK, 0);
+  animateDisplay.animationStart(ANI_CLOCK, 0);
   return false;
 }
 
@@ -986,7 +932,7 @@ void loop() {
         next_tick = 500;
         break;
       case STATE_NO_WIFI:
-        animationLoop();
+        animateDisplay.animationLoop();
         if (WiFi.status() == WL_CONNECTED) {
           segments = 0;
           state = STATE_TIME;
@@ -994,7 +940,7 @@ void loop() {
         }
         break;
       case STATE_NO_NTP:
-        animationLoop();
+        animateDisplay.animationLoop();
         if (hasTimeBeenSet()) {
           state = STATE_TIME;
           segments = 0;
