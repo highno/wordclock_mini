@@ -14,9 +14,9 @@ bool LedMatrixAnimation::animationDone() {
 
 void LedMatrixAnimation::showImage(byte imageId) {
   for (int i=0; i<8; i++) {
-    ledMatrix.setColumn(i,ani_images[imageId][i]);
+    pLedMatrix->setColumn(i,ani_images[imageId][i]);
   }
-  ledMatrix.commit();  
+  pLedMatrix->commit();  
 }
 
 void LedMatrixAnimation::animationShowFrame() {

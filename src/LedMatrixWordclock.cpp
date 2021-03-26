@@ -12,115 +12,115 @@ void LedMatrixWordclock::showSegment(byte segmentId, bool noShow) {
   if (noShow) return;
   switch (segmentId) {
     case SEGMENT_FUENF:
-      ledMatrix.setPixel(0,0);
-      ledMatrix.setPixel(1,0);
-      ledMatrix.setPixel(2,0);
-      ledMatrix.setPixel(3,0);
+      pLedMatrix->setPixel(0,0);
+      pLedMatrix->setPixel(1,0);
+      pLedMatrix->setPixel(2,0);
+      pLedMatrix->setPixel(3,0);
       break;  
     case SEGMENT_ZEHN:
-      ledMatrix.setPixel(4,0);
-      ledMatrix.setPixel(5,0);
-      ledMatrix.setPixel(6,0);
-      ledMatrix.setPixel(7,0);
+      pLedMatrix->setPixel(4,0);
+      pLedMatrix->setPixel(5,0);
+      pLedMatrix->setPixel(6,0);
+      pLedMatrix->setPixel(7,0);
       break;  
     case SEGMENT_VOR:
-      ledMatrix.setPixel(1,1);
-      ledMatrix.setPixel(2,1);
-      ledMatrix.setPixel(3,1);
+      pLedMatrix->setPixel(1,1);
+      pLedMatrix->setPixel(2,1);
+      pLedMatrix->setPixel(3,1);
       break;  
     case SEGMENT_NACH:
-      ledMatrix.setPixel(4,1);
-      ledMatrix.setPixel(5,1);
-      ledMatrix.setPixel(6,1);
-      ledMatrix.setPixel(7,1);
+      pLedMatrix->setPixel(4,1);
+      pLedMatrix->setPixel(5,1);
+      pLedMatrix->setPixel(6,1);
+      pLedMatrix->setPixel(7,1);
       break;  
     case SEGMENT_HALB:
-      ledMatrix.setPixel(0,2);
-      ledMatrix.setPixel(1,2);
-      ledMatrix.setPixel(2,2);
-      ledMatrix.setPixel(3,2);
+      pLedMatrix->setPixel(0,2);
+      pLedMatrix->setPixel(1,2);
+      pLedMatrix->setPixel(2,2);
+      pLedMatrix->setPixel(3,2);
       break;  
     case SEGMENT_NUM_1:
-      ledMatrix.setPixel(0,4);
-      ledMatrix.setPixel(1,4);
-      ledMatrix.setPixel(2,4);
-      ledMatrix.setPixel(3,4);
+      pLedMatrix->setPixel(0,4);
+      pLedMatrix->setPixel(1,4);
+      pLedMatrix->setPixel(2,4);
+      pLedMatrix->setPixel(3,4);
       break;  
     case SEGMENT_NUM_2:
-      ledMatrix.setPixel(0,4);
-      ledMatrix.setPixel(1,4);
-      ledMatrix.setPixel(0,3);
-      ledMatrix.setPixel(1,3);
+      pLedMatrix->setPixel(0,4);
+      pLedMatrix->setPixel(1,4);
+      pLedMatrix->setPixel(0,3);
+      pLedMatrix->setPixel(1,3);
       break;  
     case SEGMENT_NUM_3:
-      ledMatrix.setPixel(4,7);
-      ledMatrix.setPixel(5,7);
-      ledMatrix.setPixel(6,7);
-      ledMatrix.setPixel(7,7);
+      pLedMatrix->setPixel(4,7);
+      pLedMatrix->setPixel(5,7);
+      pLedMatrix->setPixel(6,7);
+      pLedMatrix->setPixel(7,7);
       break;  
     case SEGMENT_NUM_4:
-      ledMatrix.setPixel(4,2);
-      ledMatrix.setPixel(5,2);
-      ledMatrix.setPixel(6,2);
-      ledMatrix.setPixel(7,2);
+      pLedMatrix->setPixel(4,2);
+      pLedMatrix->setPixel(5,2);
+      pLedMatrix->setPixel(6,2);
+      pLedMatrix->setPixel(7,2);
       break;  
     case SEGMENT_NUM_5:
-      ledMatrix.setPixel(4,3);
-      ledMatrix.setPixel(5,3);
-      ledMatrix.setPixel(6,3);
-      ledMatrix.setPixel(7,3);
+      pLedMatrix->setPixel(4,3);
+      pLedMatrix->setPixel(5,3);
+      pLedMatrix->setPixel(6,3);
+      pLedMatrix->setPixel(7,3);
       break;  
     case SEGMENT_NUM_6:
-      ledMatrix.setPixel(3,4);
-      ledMatrix.setPixel(4,4);
-      ledMatrix.setPixel(5,4);
-      ledMatrix.setPixel(6,4);
-      ledMatrix.setPixel(7,4);
+      pLedMatrix->setPixel(3,4);
+      pLedMatrix->setPixel(4,4);
+      pLedMatrix->setPixel(5,4);
+      pLedMatrix->setPixel(6,4);
+      pLedMatrix->setPixel(7,4);
       break;  
     case SEGMENT_NUM_7:
-      ledMatrix.setPixel(1,6);
-      ledMatrix.setPixel(2,6);
-      ledMatrix.setPixel(3,6);
-      ledMatrix.setPixel(4,6);
-      ledMatrix.setPixel(5,6);
-      ledMatrix.setPixel(6,6);
+      pLedMatrix->setPixel(1,6);
+      pLedMatrix->setPixel(2,6);
+      pLedMatrix->setPixel(3,6);
+      pLedMatrix->setPixel(4,6);
+      pLedMatrix->setPixel(5,6);
+      pLedMatrix->setPixel(6,6);
       break;  
     case SEGMENT_NUM_8:
-      ledMatrix.setPixel(0,7);
-      ledMatrix.setPixel(1,7);
-      ledMatrix.setPixel(2,7);
-      ledMatrix.setPixel(3,7);
+      pLedMatrix->setPixel(0,7);
+      pLedMatrix->setPixel(1,7);
+      pLedMatrix->setPixel(2,7);
+      pLedMatrix->setPixel(3,7);
       break;  
     case SEGMENT_NUM_9:
-      ledMatrix.setPixel(4,5);
-      ledMatrix.setPixel(5,5);
-      ledMatrix.setPixel(6,5);
-      ledMatrix.setPixel(7,5);
+      pLedMatrix->setPixel(4,5);
+      pLedMatrix->setPixel(5,5);
+      pLedMatrix->setPixel(6,5);
+      pLedMatrix->setPixel(7,5);
       break;  
     case SEGMENT_NUM_10:
-      ledMatrix.setPixel(1,5);
-      ledMatrix.setPixel(2,5);
-      ledMatrix.setPixel(3,5);
-      ledMatrix.setPixel(4,5);
+      pLedMatrix->setPixel(1,5);
+      pLedMatrix->setPixel(2,5);
+      pLedMatrix->setPixel(3,5);
+      pLedMatrix->setPixel(4,5);
       break;  
     case SEGMENT_NUM_11:
-      ledMatrix.setPixel(0,4);
-      ledMatrix.setPixel(0,5);
-      ledMatrix.setPixel(0,6);
+      pLedMatrix->setPixel(0,4);
+      pLedMatrix->setPixel(0,5);
+      pLedMatrix->setPixel(0,6);
       break;  
     case SEGMENT_NUM_12:
-      ledMatrix.setPixel(0,3);
-      ledMatrix.setPixel(1,3);
-      ledMatrix.setPixel(2,3);
-      ledMatrix.setPixel(3,3);
-      ledMatrix.setPixel(4,3);
+      pLedMatrix->setPixel(0,3);
+      pLedMatrix->setPixel(1,3);
+      pLedMatrix->setPixel(2,3);
+      pLedMatrix->setPixel(3,3);
+      pLedMatrix->setPixel(4,3);
       break;  
   }
 }
 
 void LedMatrixWordclock::showWordsOnLED(time_t local,bool noShow) {
   if (!noShow) {
-    ledMatrix.clear();
+    pLedMatrix->clear();
 //    DPRINTLN("now showing new segments");
   }
   newSegments = 0;  
@@ -177,7 +177,7 @@ void LedMatrixWordclock::showWordsOnLED(time_t local,bool noShow) {
     showSegment(SEGMENT_VOR, noShow);
     showSegment(SEGMENT_NUM_1 - 1 + ((hour(local) + 12) % 12) + 1, noShow);
   }
-  if (!noShow) ledMatrix.commit();
+  if (!noShow) pLedMatrix->commit();
 }
 
 long LedMatrixWordclock::getNewSegments() {
