@@ -1,6 +1,5 @@
 #ifndef ___ledmatrixanimation_h___
 #define ___ledmatrixanimation_h___
-#include "LedMatrix.h"
 #include <elapsedMillis.h>         // version 1.0.4, by Paul Stoffregen
 
 

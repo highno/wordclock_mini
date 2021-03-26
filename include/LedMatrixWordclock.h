@@ -1,6 +1,5 @@
 #ifndef ___ledmatrixwordclock_h___
 #define ___ledmatrixwordclock_h___
-#include "LedMatrix.h"
 
 #define SEGMENT_FUENF 1
 #define SEGMENT_ZEHN 2
