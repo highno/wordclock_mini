@@ -28,7 +28,7 @@ public:
      * Constructor.
      * matrix: Reference to the LedMatrix object to display on
      */
-    LedMatrixWordclock(LedMatrix& matrix) ;
+    LedMatrixWordclock(LedMatrix* matrix);
     void showSegment(byte segmentId, bool noShow);
     void showWordsOnLED(time_t local, bool noShow);
     long getNewSegments();

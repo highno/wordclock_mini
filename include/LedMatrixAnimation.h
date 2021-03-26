@@ -11,7 +11,7 @@ public:
      * Constructor.
      * matrix: Reference to the LedMatrix object to display on
      */
-    LedMatrixAnimation(LedMatrix& matrix) ;
+    LedMatrixAnimation(LedMatrix* matrix);
     bool animationDone();
     void showImage(byte imageId);
     void animationLoop();

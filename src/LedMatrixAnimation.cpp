@@ -4,8 +4,8 @@
 /**
  * matrix: Reference to the LedMatrix object to display on
  */
-LedMatrixAnimation::LedMatrixAnimation(LedMatrix& matrix) {
-    pLedMatrix = &matrix;
+LedMatrixAnimation::LedMatrixAnimation(LedMatrix* matrix) {
+    pLedMatrix = matrix;
 }
 
 bool LedMatrixAnimation::animationDone() {

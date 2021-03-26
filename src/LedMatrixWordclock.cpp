@@ -3,8 +3,8 @@
 /**
  * matrix: Reference to the LedMatrix object to display on
  */
-LedMatrixWordclock::LedMatrixWordclock(LedMatrix& matrix) {
-    pLedMatrix = &matrix;
+LedMatrixWordclock::LedMatrixWordclock(LedMatrix* matrix) {
+    pLedMatrix = matrix;
 }
 
 void LedMatrixWordclock::showSegment(byte segmentId, bool noShow) {
