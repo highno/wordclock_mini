@@ -1,5 +1,4 @@
 #include "LedMatrixWordclock.h"
-#include <TimeLib.h>
 
 /**
  * matrix: Reference to the LedMatrix object to display on
