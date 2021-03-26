@@ -16,9 +16,9 @@
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>          //https://github.com/bblanchon/ArduinoJson
 #include <SPI.h>
-#include "LedMatrix.h"
-#include "LedMatrixWordclock.h"
-#include "LedMatrixAnimation.h"
+#include "LedMatrix.cpp"
+#include "LedMatrixWordclock.cpp"
+#include "LedMatrixAnimation.cpp"
 #include "animations.h" //
 #define FASTLED_ALLOW_INTERRUPTS 0
 #define FASTLED_ESP8266_D1_PIN_ORDER
