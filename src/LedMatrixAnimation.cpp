@@ -13,7 +13,6 @@ bool LedMatrixAnimation::animationDone() {
 }
 
 void LedMatrixAnimation::showImage(byte imageId) {
-  LedMatrix ledMatrix = (*pLedMatrix);
   for (int i=0; i<8; i++) {
     ledMatrix.setColumn(i,ani_images[imageId][i]);
   }

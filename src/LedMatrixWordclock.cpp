@@ -9,7 +9,6 @@ LedMatrixWordclock::LedMatrixWordclock(LedMatrix* matrix) {
 
 void LedMatrixWordclock::showSegment(byte segmentId, bool noShow) {
   newSegments += 1 << segmentId;
-  LedMatrix ledMatrix = (*pLedMatrix);
   if (noShow) return;
   switch (segmentId) {
     case SEGMENT_FUENF:
@@ -120,7 +119,6 @@ void LedMatrixWordclock::showSegment(byte segmentId, bool noShow) {
 }
 
 void LedMatrixWordclock::showWordsOnLED(time_t local,bool noShow) {
-  LedMatrix ledMatrix = (*pLedMatrix);
   if (!noShow) {
     ledMatrix.clear();
 //    DPRINTLN("now showing new segments");
