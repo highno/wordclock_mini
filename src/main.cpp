@@ -64,7 +64,8 @@ String SW_VERSION = SW_VERSION_DEF;
 
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CS_PIN);
 LedMatrixWordclock wordclockDisplay = LedMatrixWordclock(ledMatrix);
-LedMatrixAnimation animateDisplay = LedMatrixAnimation(ledMatrix);
+LedMatrix ledMatrix2 = LedMatrix(NUMBER_OF_DEVICES, CS_PIN);
+LedMatrixAnimation animateDisplay = LedMatrixAnimation(ledMatrix2);
 
 CRGB leds[1];
 CHSV led;
@@ -589,7 +590,7 @@ void handleEvent(ace_button::AceButton* button, uint8_t eventType, uint8_t butto
 void setup() {
   // Open serial communications and wait for port to open
 #ifdef DEBUG
-  Serial.begin(115200);
+  Serial.begin(76800);
 #endif
 
   DPRINTLN(F("Wordclock Mini"));
