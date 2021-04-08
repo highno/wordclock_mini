@@ -1,6 +1,5 @@
 #ifndef ___ledmatrixanimation_h___
 #define ___ledmatrixanimation_h___
-#include "LedMatrix.h"
 #include <elapsedMillis.h>         // version 1.0.4, by Paul Stoffregen
 
 
@@ -12,7 +11,7 @@ public:
      * Constructor.
      * matrix: Reference to the LedMatrix object to display on
      */
-    LedMatrixAnimation(LedMatrix& matrix) ;
+    LedMatrixAnimation(LedMatrix* matrix);
     bool animationDone();
     void showImage(byte imageId);
     void animationLoop();

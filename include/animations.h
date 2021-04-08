@@ -1,4 +1,6 @@
-#include <Arduino.h>
+#ifndef __animations_h__
+#define __animations_h__
+
 
 #define IMG_WIFI_FULL 0
 #define IMG_WIFI_MEDIUM 1
@@ -681,3 +683,5 @@ const byte ani_images[][8]  = {
 }
 // 56 - weitere
 };
+
+#endif

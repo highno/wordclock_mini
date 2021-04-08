@@ -4,8 +4,8 @@
 /**
  * matrix: Reference to the LedMatrix object to display on
  */
-LedMatrixAnimation::LedMatrixAnimation(LedMatrix& matrix) {
-    pLedMatrix = &matrix;
+LedMatrixAnimation::LedMatrixAnimation(LedMatrix* matrix) {
+    pLedMatrix = matrix;
 }
 
 bool LedMatrixAnimation::animationDone() {
@@ -13,11 +13,10 @@ bool LedMatrixAnimation::animationDone() {
 }
 
 void LedMatrixAnimation::showImage(byte imageId) {
-  LedMatrix ledMatrix = (*pLedMatrix);
   for (int i=0; i<8; i++) {
-    ledMatrix.setColumn(i,ani_images[imageId][i]);
+    pLedMatrix->setColumn(i,ani_images[imageId][i]);
   }
-  ledMatrix.commit();  
+  pLedMatrix->commit();  
 }
 
 void LedMatrixAnimation::animationShowFrame() {
